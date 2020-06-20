@@ -12,7 +12,7 @@ from etymwordnet import get_etym_wordnet, EtymWordnetRelation
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description='Train etymology embeddings')
 	parser.add_argument('--type', dest='type', help='[\'poincare\']')
-	args = parser.parse_args()
+	args, unknown = parser.parse_known_args()#parser.parse_args()
 
 	relations = []
 	etym_wordnet = get_etym_wordnet(

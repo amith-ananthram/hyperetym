@@ -5,11 +5,12 @@ from collections import Counter
 DATA_PATH = 'data/etymwn.tsv'
 
 class EtymWordnetRelation(Enum):
-	HAS_DERIVED_FROM = 1
+	HAS_DERIVED_FORM = 1
 	IS_DERIVED_FROM = 2
 	ETYMOLOGICALLY_RELATED = 3
-	ETYMOLOGICAL_ORIGIN_OF = 4
-	VARIANT_ORTHOGRAPHY = 5
+	ETYMOLOGY = 4
+	ETYMOLOGICAL_ORIGIN_OF = 5
+	VARIANT_ORTHOGRAPHY = 6
 
 	def to_identifier(self):
 		if self == EtymWordnetRelation.HAS_DERIVED_FORM:
@@ -56,7 +57,7 @@ def get_etym_wordnet(relations_to_include=None):
 	relations_to_include = set(map(
 		EtymWordnetRelation.to_identifier, relations_to_include)) \
 		if relations_to_include else None
-	with open(DATA_PATH, 'r') as f:
+	with open(DATA_PATH, 'r', encoding="utf8") as f:
 		reader = csv.reader(f, delimiter="\t")
 		for row in reader:
 			try:
