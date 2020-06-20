@@ -12,14 +12,16 @@ class EtymWordnetRelation(Enum):
 	VARIANT_ORTHOGRAPHY = 5
 
 	def to_identifier(self):
-		if self == EtymWordnetRelation.HAS_DERIVED_FROM:
-			return 'rel:has_derived_from'
+		if self == EtymWordnetRelation.HAS_DERIVED_FORM:
+			return 'rel:has_derived_form'
 		elif self == EtymWordnetRelation.IS_DERIVED_FROM:
 			return 'rel:is_derived_from'
 		elif self == EtymWordnetRelation.ETYMOLOGICALLY_RELATED:
 			return 'rel:etymologically_related'
-		elif self == EtymWordnetRelation.ETYMOLOGICAL_ORIGIN_OF:
+		elif self == EtymWordnetRelation.ETYMOLOGY:
 			return 'rel:etymology'
+		elif self == EtymWordnetRelation.ETYMOLOGICAL_ORIGIN_OF:
+			return 'rel:etymological_origin_of'
 		elif self == EtymWordnetRelation.VARIANT_ORTHOGRAPHY:
 			return 'rel:variant:orthography'
 		else:
