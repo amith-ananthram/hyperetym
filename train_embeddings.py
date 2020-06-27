@@ -3,6 +3,7 @@ import numpy as np
 from gensim.models.poincare import PoincareModel
 
 from etymwordnet import get_etym_wordnet, EtymWordnetRelation
+from wikisent import get_wiki_sent, get_context_sent
 
 # compare euclidean and poincare glove at different dimensionalities
 # things to compare:
@@ -25,4 +26,8 @@ if __name__ == '__main__':
 
 	model = PoincareModel(relations[0:1000], size=5, dtype=np.float32)
 	model.train(epochs=1)
+
+	wiki_sent = get_wiki_sent()
+	context = get_context_sent("compact", wiki_sent)
+	print(context)
 
