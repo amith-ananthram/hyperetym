@@ -1,4 +1,5 @@
 import csv
+import networkx as nx
 from enum import Enum
 from collections import Counter
 
@@ -51,7 +52,7 @@ class EtymWordnetEdge:
 	def __repr__(self):
 		return 'EWNEdge(%s, %s, %s)' % (self.relation, self.source, self.target)
 
-def get_etym_wordnet(relations_to_include=None):
+def get_etym_wordnet(relations_to_include=None, format='edgelist'):
 	etym_wordnet = []
 	parse_errors = []
 	relations_to_include = set(map(
@@ -67,8 +68,8 @@ def get_etym_wordnet(relations_to_include=None):
 					right_entity_lang, right_entity = right_entity.split(':')
 					etym_wordnet.append(EtymWordnetEdge(
 						relation,
-						EtymWordnetNode(left_entity_lang.lower(), left_entity.lower()),
-						EtymWordnetNode(right_entity_lang.lower(), right_entity.lower())
+						EtymWordnetNode(left_entity_lang.lower().strip(), left_entity.lower().strip()),
+						EtymWordnetNode(right_entity_lang.lower().strip(), right_entity.lower().strip())
 					))
 			except Exception:
 				parse_errors.append(row)
@@ -76,7 +77,18 @@ def get_etym_wordnet(relations_to_include=None):
 	if len(parse_errors) >= 0.1 * (len(parse_errors) + len(etym_wordnet)):
 		raise Exception("Lots of parse errors!")
 
-	return etym_wordnet
+	if format == 'edgelist':
+		return etym_wordnet
+	elif format == 'networkx':
+		graph = nx.DiGraph()
+		for edge in etym_wordnet:
+			graph.add_edge(
+				(edge.source.lang, edge.source.word),
+				(edge.target.lang, edge.target.word)
+			)
+		return graph 
+	else:
+		raise Exception("Unsupported format: %s" % (format))
 
 if __name__ == '__main__':
 	etym_wordnet = get_etym_wordnet()
