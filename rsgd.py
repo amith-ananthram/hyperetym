@@ -9,14 +9,14 @@ class RSGD(Optimizer):
         self.rgrad = rgrad
         self.expm = expm
 
-    def step(self):
+    def step(self, lr=None):
 
         loss = None
         
         #param_groups from Optimizer
         for group in self.param_groups:
             for p in group['param']:
-                lr = group['lr']
+                lr = lr or group['lr']
                 rgrad = group['rgrad']
                 expm = group['expm']
 
