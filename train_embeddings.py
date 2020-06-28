@@ -1,8 +1,8 @@
 import argparse
 import numpy as np
-from gensim.models.poincare import PoincareModel
 
-from etymwordnet import get_etym_wordnet, EtymWordnetRelation
+from torch import nn
+
 from wikisent import get_wiki_sent, get_context_sent
 
 # compare euclidean and poincare glove at different dimensionalities
@@ -10,24 +10,24 @@ from wikisent import get_wiki_sent, get_context_sent
 #		1) reconstruction
 #		2) prediction (via model)
 
+class Embeddings(nn.Module):
+	def __init__(self, vocabulary, manifold, dim):
+		self.manifold = manifold
+		self.embeddings = nn.Embedding(len(vocabulary), dim)
+
+
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description='Train etymology embeddings')
-	parser.add_argument('--type', dest='type', help='[\'poincare\']')
-	args, unknown = parser.parse_known_args()#parser.parse_args()
+	parser.add_argument('--manifold', dest='manifold', help='[\'euclidean\', \'poincare\']')
+	parser.add_argument('--dim', dest='dim')
+	args, unknown = parser.parse_known_args()
 
 	relations = []
-	etym_wordnet = get_etym_wordnet(
-		relations_to_include=[EtymWordnetRelation.IS_DERIVED_FROM])
-	for edge in etym_wordnet:
-		relations.append((
-			'%s-%s' % (edge.source.lang, edge.source.word), 
-			'%s-%s' % (edge.target.lang, edge.target.word)
-		))
+	
 
-	model = PoincareModel(relations[0:1000], size=5, dtype=np.float32)
-	model.train(epochs=1)
+	print(len(etym_wordnet.nodes()))
 
-	wiki_sent = get_wiki_sent()
-	context = get_context_sent("compact", wiki_sent)
-	print(context)
+	# wiki_sent = get_wiki_sent()
+	# context = get_context_sent("compact", wiki_sent)
+	# print(context)
 

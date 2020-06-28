@@ -1,6 +1,7 @@
 import csv
 import networkx as nx
 from enum import Enum
+from torch.utils import data
 from collections import Counter
 
 DATA_PATH = 'data/etymwn.tsv'
@@ -33,6 +34,9 @@ class EtymWordnetNode:
 	def __init__(self, lang, word):
 		self.lang = lang
 		self.word = word
+
+	def value(self):
+		return '%s-%s' % (lang, word)
 
 	def __str__(self):
 		return '(%s, %s)' % (self.lang, self.word)
