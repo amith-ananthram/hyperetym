@@ -19,7 +19,7 @@ class Embeddings(nn.Module):
 		self.embeddings = nn.Embedding(len(vocabulary), dim)
 
 	def forward(self, examples):
-		embedded = self.lt(examples)
+		embedded = self.embeddings(examples)
 		with torch.no_grad():
 			embedded = self.manifold.normalize(embedded)
 		return embedded
