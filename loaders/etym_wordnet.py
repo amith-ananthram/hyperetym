@@ -14,7 +14,7 @@ class EtymWordnetDataset(data.Dataset):
 		self.etym_wordnet = etym_wordnet
 		self.nneg = nneg 
 
-	def len(self):
+	def __len__(self):
 		return len(self.edges)
 
 	def __getitem__(self, idx):
@@ -30,7 +30,7 @@ class EtymWordnetDataset(data.Dataset):
 			1
 		]
 
-		neighbors = set(self.etym_wordnet.ancestors(source))
+		neighbors = set(self.etym_wordnet.predecessors(source)) \
 			| set(self.etym_wordnet.successors(source))
 		for nneg_candidate in random.sample(self.nodes.keys(), self.nneg * 5):
 			if nneg_candidate not in neighbors:
@@ -39,7 +39,7 @@ class EtymWordnetDataset(data.Dataset):
 				if len(examples) >= 2 + self.nneg:
 					break
 
-		return F.one_hot(torch.tensor(examples)), labels 
+		return torch.tensor(examples), torch.tensor(labels)
 
 def get_etym_wordnet_dataset(transitive_closure=True, nneg=10):
 	etym_wordnet = corpora.get_etym_wordnet(
