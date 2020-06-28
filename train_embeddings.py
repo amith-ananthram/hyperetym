@@ -3,6 +3,7 @@ import numpy as np
 
 from torch import nn
 
+import loaders
 from wikisent import get_wiki_sent, get_context_sent
 
 # compare euclidean and poincare glove at different dimensionalities
@@ -22,10 +23,8 @@ if __name__ == '__main__':
 	parser.add_argument('--dim', dest='dim')
 	args, unknown = parser.parse_known_args()
 
-	relations = []
-	
-
-	print(len(etym_wordnet.nodes()))
+	nodes, edges, etym_wordnet = loaders.get_etym_wordnet_dataset()
+	embeddings = Embeddings(nodes, None, args.dim)
 
 	# wiki_sent = get_wiki_sent()
 	# context = get_context_sent("compact", wiki_sent)
