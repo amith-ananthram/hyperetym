@@ -64,7 +64,7 @@ if __name__ == '__main__':
 	else:
 		raise Exception("Unsupported manifold: %s" % args.manifold)
 
-	optimizer = RSGD(list(embeddings.parameters()), manifold)
+	optimizer = RSGD(list(embeddings.parameters()), manifold, float(args.lr))
 
 	for epoch in range(int(args.epochs)):
 		for batch_id, batch in enumerate(train_loader):
