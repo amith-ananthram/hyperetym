@@ -34,11 +34,15 @@ class EtymWordnetDataset(data.Dataset):
 
 		return torch.tensor(examples)
 
-def get_etym_wordnet_dataset(transitive_closure=True, nneg=10):
+def get_etym_wordnet_dataset(transitive_closure=True, add_root=True, nneg=10):
 	etym_wordnet = corpora.get_etym_wordnet(
 		relations_to_include=[corpora.EtymWordnetRelation.ETYMOLOGICAL_ORIGIN_OF], 
 		format='networkx'
 	)
+
+	if add_root:
+		etym_wordnet.add_edges_from([(('rot', 'root'), i) for i in etym_wordnet.nodes \
+            if not len(list(etym_wordnet.predecessors(i)))])
 
 	if transitive_closure:
 		etym_wordnet = nx.transitive_closure(etym_wordnet)
