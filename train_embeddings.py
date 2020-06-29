@@ -38,7 +38,7 @@ def train(variant, manifold, dim, lr, batch_size, epochs):
     else:
         device = torch.device("cpu")
 
-    nodes, edges, etym_wordnet = loaders.get_etym_wordnet_dataset(add_root=False)
+    nodes, edges, etym_wordnet = loaders.get_etym_wordnet_dataset(langs=['eng'])
 
     train_loader = data.DataLoader(
         etym_wordnet, 
