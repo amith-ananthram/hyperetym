@@ -112,11 +112,15 @@ class EtymWordnetDataset(data.Dataset):
 
         neighbors = set(self.etym_wordnet.predecessors(source)) \
             | set(self.etym_wordnet.successors(source))
-        for nneg_candidate in random.sample(self.nodes.keys(), self.nneg * 5):
+        for nneg_candidate in random.sample(self.nodes.keys(), self.nneg * 20):
             if nneg_candidate not in neighbors:
                 examples.append(self.nodes[nneg_candidate])
                 if len(examples) >= 2 + self.nneg:
                     break
+
+        if len(examples) < 2 + self.nneg:
+            print("Couldn't sample enough negatives for %s, zero-padding..." % (source))
+            examples.extend([0 for _ in range(len(examples) - 2 + self.nneg)])
 
         return torch.tensor(examples)
 
