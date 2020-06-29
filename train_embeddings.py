@@ -57,6 +57,8 @@ def train(variant, manifold, dim, lr, batch_size, epochs):
 
     optimizer = RSGD(list(embeddings.parameters()), manifold, lr)
 
+    torch.set_default_tensor_type(torch.DoubleTensor)
+
     seen = set()
     embeddings.train()
     for epoch in range(epochs):
