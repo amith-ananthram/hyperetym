@@ -1,29 +1,29 @@
 from torch.optim.optimizer import Optimizer
 
 class RSGD(Optimizer):
-    def __init__(self, params, lr):
-        self.params = params
-        self.manifold = manifold
-        self.lr = lr
+	def __init__(self, params, manifold, lr):
+		defaults = {
+			'lr': lr,
+		}
+		super(RSGD, self).__init__(params, defaults)
+		self.params = params
+		self.manifold = manifold
+		self.lr = lr
 
-    def step(self, lr=None):
+	def step(self, lr=None):
+		# param_groups from Optimizer
+		for group in self.param_groups:
+			for p in group['params']:
+				lr = lr or group['lr']
 
-        loss = None
-        
-        # param_groups from Optimizer
-        for group in self.param_groups:
-            for p in group['param']:
-                lr = lr or group['lr']
-                rgrad = group['rgrad']
-                expm = group['expm']
+				if p.grad is None:
+					continue
+					
+				dp = p.grad.data
+				if dp.is_sparse:
+					p_data = dp.coalesce()
 
-                dp = p.grad.data
-                if dp.is_sparse:
-                    p_data = dp.coalesce()
+				dp = self.manifold.rgrad(p.data, dp)
+				dp.mul_(-self.lr)
 
-                dp = self.manifold.rgrad(p.data, dp)
-                dp.mul_(-self.lr)
-
-                self.manifold.expm(p.data, dp)
-
-        return loss
+				self.manifold.expm(p.data, dp)

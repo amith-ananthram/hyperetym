@@ -1,20 +1,19 @@
 import argparse
 import numpy as np
 
+import torch
 from torch import nn
 from torch.utils import data
+from torch.nn import functional as F
 
 import loaders
 from rsgd import RSGD
-from wikisent import get_wiki_sent, get_context_sent
+from manifold import EuclideanManifold, PoincareManifold
 
-# compare euclidean and poincare glove at different dimensionalities
-# things to compare:
-#		1) reconstruction
-#		2) prediction (via model)
 
 class Embeddings(nn.Module):
 	def __init__(self, vocabulary, manifold, dim):
+		super().__init__()
 		self.manifold = manifold
 		self.embeddings = nn.Embedding(len(vocabulary), dim)
 
@@ -25,12 +24,6 @@ class Embeddings(nn.Module):
 		return embedded
 
 EMBEDDINGS_DIR = 'embeddings/'
-
-
-def move_to_device(batch, device):
-	examples, labels = batch
-	return examples.to(device), labels.to(device)
-
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description='Train etymology embeddings')
@@ -49,7 +42,6 @@ if __name__ == '__main__':
 		device = torch.device("cpu")
 
 	nodes, edges, etym_wordnet = loaders.get_etym_wordnet_dataset()
-	embeddings = Embeddings(nodes, None, args.dim).to(device)
 
 	train_loader = data.DataLoader(
 		etym_wordnet, 
@@ -58,27 +50,38 @@ if __name__ == '__main__':
 	)
 
 	if args.manifold == 'euclidean':
-		manifold = None
+		manifold = EuclideanManifold()
 	elif args.manifold == 'poincare':
-		manifold = None 
+		manifold = PoincareManifold() 
 	else:
 		raise Exception("Unsupported manifold: %s" % args.manifold)
+
+	embeddings = Embeddings(nodes, manifold, int(args.dim)).to(device)
 
 	optimizer = RSGD(list(embeddings.parameters()), manifold, float(args.lr))
 
 	for epoch in range(int(args.epochs)):
 		for batch_id, batch in enumerate(train_loader):
-			examples, labels = move_to_device(batch, device)
+			examples = batch.to(device)
 
 			optimizer.zero_grad()
 			embedded = embeddings(examples)
 
 			targets = embedded.narrow(1, 1, embedded.size(1) - 1)
 			source = embedded.narrow(1, 0, 1).expand_as(targets)
-			distances = self.manifold.distance(source, targets).squeeze(-1)
+			distances = manifold.distance(source, targets).squeeze(-1)
+
+			# because the second example in examples is the positive
+			# example, the real class label is always 0 in targets
+			labels = torch.tensor([0 for _ in range(distances.shape[0])]).to(device)
+			loss = F.cross_entropy(distances.neg(), labels)
+			loss.backward()
 
 			optimizer.step()
 			torch.cuda.empty_cache()
+
+			if batch_id % 100 == 0:
+				print('EPOCH %s BATCH %s/%s, LOSS=%s' % (epoch, batch_id, len(edges), loss.item()))
 
 		model_dir = os.path.join(EMBEDDINGS_DIR, args.variant)
 		torch.save(

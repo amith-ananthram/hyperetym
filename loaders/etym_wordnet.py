@@ -23,23 +23,16 @@ class EtymWordnetDataset(data.Dataset):
 			self.nodes[source],
 			self.nodes[target]
 		]
-		# 1 indicates neighbors,
-		# 0 indicates non-neighbors
-		labels = [
-			1,
-			1
-		]
 
 		neighbors = set(self.etym_wordnet.predecessors(source)) \
 			| set(self.etym_wordnet.successors(source))
 		for nneg_candidate in random.sample(self.nodes.keys(), self.nneg * 5):
 			if nneg_candidate not in neighbors:
 				examples.append(self.nodes[nneg_candidate])
-				labels.append(0)
 				if len(examples) >= 2 + self.nneg:
 					break
 
-		return torch.tensor(examples), torch.tensor(labels)
+		return torch.tensor(examples)
 
 def get_etym_wordnet_dataset(transitive_closure=True, nneg=10):
 	etym_wordnet = corpora.get_etym_wordnet(
