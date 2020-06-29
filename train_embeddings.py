@@ -1,5 +1,6 @@
 import os
 import math
+import pathlib
 import argparse
 import numpy as np
 from datetime import datetime
@@ -28,7 +29,7 @@ class Embeddings(nn.Module):
         return embedded
 
 BURN_IN_FACTOR = 1/10
-BURN_IN_EPOCHS = 10
+BURN_IN_EPOCHS = 5
 EMBEDDINGS_DIR = 'embeddings/'
 
 def train(variant, manifold, dim, lr, batch_size, epochs):
@@ -59,7 +60,6 @@ def train(variant, manifold, dim, lr, batch_size, epochs):
 
     torch.set_default_tensor_type(torch.DoubleTensor)
 
-    seen = set()
     embeddings.train()
     for epoch in range(epochs):
         if epoch < BURN_IN_EPOCHS:
@@ -85,12 +85,9 @@ def train(variant, manifold, dim, lr, batch_size, epochs):
             if math.isnan(loss.item()):
                 print(examples)
                 for item in examples[0]:
-                    print('%s (seen=%s)' % (nodes.inv[item.item()], item.item() in seen))
+                    print('%s' % (nodes.inv[item.item()]))
                 print(embedded)
                 raise Exception("Saw nan.  Halting.")
-
-            for item in examples[0]:
-                seen.add(item.item())
 
             loss.backward()
 
@@ -99,9 +96,10 @@ def train(variant, manifold, dim, lr, batch_size, epochs):
 
             if batch_id % 100 == 0:
                 print('%s: EPOCH %s BATCH %s/%s, LOSS=%s' % (
-                    datetime.now(), epoch, batch_id, len(edges), loss.item()))
+                    datetime.now(), epoch, batch_id, int(len(edges) / batch_size), loss.item()))
 
         model_dir = os.path.join(EMBEDDINGS_DIR, variant)
+        pathlib.Path(model_dir).mkdir(parents=True, exist_ok=True)
         torch.save(
             embeddings.state_dict(),
             os.path.join(model_dir, "model_checkpoint%s.pt" % (epoch))
