@@ -1,5 +1,6 @@
 import random
 import networkx as nx
+from bidict import bidict
 
 import torch
 from torch.utils import data
@@ -48,7 +49,7 @@ def get_etym_wordnet_dataset(transitive_closure=True, add_root=True, nneg=10):
 		etym_wordnet = nx.transitive_closure(etym_wordnet)
 
 	nodes = list(sorted(etym_wordnet.nodes()))
-	nodes = {node:idx for (idx, node) in enumerate(nodes)}
+	nodes = bidict({node:idx for (idx, node) in enumerate(nodes)})
 	edges = list(etym_wordnet.edges())
 
 	return nodes, edges, EtymWordnetDataset(nodes, edges, etym_wordnet, nneg)

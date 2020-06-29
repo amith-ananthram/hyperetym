@@ -1,5 +1,8 @@
+import os
+import math
 import argparse
 import numpy as np
+from datetime import datetime
 
 import torch
 from torch import nn
@@ -12,10 +15,11 @@ from manifold import EuclideanManifold, PoincareManifold
 
 
 class Embeddings(nn.Module):
-	def __init__(self, vocabulary, manifold, dim):
+	def __init__(self, vocabulary, manifold, dim, scale=1e-4):
 		super().__init__()
 		self.manifold = manifold
 		self.embeddings = nn.Embedding(len(vocabulary), dim)
+		self.embeddings.weight.data.uniform_(-scale, scale)
 
 	def forward(self, examples):
 		embedded = self.embeddings(examples)
@@ -23,6 +27,8 @@ class Embeddings(nn.Module):
 			embedded = self.manifold.normalize(embedded)
 		return embedded
 
+BURN_IN_FACTOR = 1/10
+BURN_IN_EPOCHS = 10
 EMBEDDINGS_DIR = 'embeddings/'
 
 if __name__ == '__main__':
@@ -41,7 +47,7 @@ if __name__ == '__main__':
 	else:
 		device = torch.device("cpu")
 
-	nodes, edges, etym_wordnet = loaders.get_etym_wordnet_dataset()
+	nodes, edges, etym_wordnet = loaders.get_etym_wordnet_dataset(add_root=False)
 
 	train_loader = data.DataLoader(
 		etym_wordnet, 
@@ -60,7 +66,14 @@ if __name__ == '__main__':
 
 	optimizer = RSGD(list(embeddings.parameters()), manifold, float(args.lr))
 
+	seen = set()
+	embeddings.train()
 	for epoch in range(int(args.epochs)):
+		if epoch < BURN_IN_EPOCHS:
+			adjusted_lr = BURN_IN_FACTOR * float(args.lr)
+		else:
+			adjusted_lr = None
+
 		for batch_id, batch in enumerate(train_loader):
 			examples = batch.to(device)
 
@@ -75,13 +88,25 @@ if __name__ == '__main__':
 			# example, the real class label is always 0 in targets
 			labels = torch.tensor([0 for _ in range(distances.shape[0])]).to(device)
 			loss = F.cross_entropy(distances.neg(), labels)
+
+			if math.isnan(loss.item()):
+				print(examples)
+				for item in examples[0]:
+					print('%s (seen=%s)' % (nodes.inv[item.item()], item.item() in seen))
+				print(embedded)
+				raise Exception("Saw nan.  Halting.")
+
+			for item in examples[0]:
+				seen.add(item.item())
+
 			loss.backward()
 
-			optimizer.step()
+			optimizer.step(lr=adjusted_lr)
 			torch.cuda.empty_cache()
 
 			if batch_id % 100 == 0:
-				print('EPOCH %s BATCH %s/%s, LOSS=%s' % (epoch, batch_id, len(edges), loss.item()))
+				print('%s: EPOCH %s BATCH %s/%s, LOSS=%s' % (
+					datetime.now(), epoch, batch_id, len(edges), loss.item()))
 
 		model_dir = os.path.join(EMBEDDINGS_DIR, args.variant)
 		torch.save(

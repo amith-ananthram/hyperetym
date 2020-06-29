@@ -6,7 +6,6 @@ class RSGD(Optimizer):
 			'lr': lr,
 		}
 		super(RSGD, self).__init__(params, defaults)
-		self.params = params
 		self.manifold = manifold
 		self.lr = lr
 
@@ -21,9 +20,9 @@ class RSGD(Optimizer):
 					
 				dp = p.grad.data
 				if dp.is_sparse:
-					p_data = dp.coalesce()
+					dp = dp.coalesce()
 
 				dp = self.manifold.rgrad(p.data, dp)
-				dp.mul_(-self.lr)
+				dp.mul_(-lr)
 
 				self.manifold.expm(p.data, dp)
