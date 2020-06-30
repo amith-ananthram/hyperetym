@@ -1,3 +1,4 @@
+import os
 import argparse
 import tqdm
 import glob
@@ -16,13 +17,13 @@ def evaluate_reconstruction(nodes, etym_wordnet, model, prog=True):
     rank_off_tot = 0
     avg_precise_tot = 0
     labels = np.empty(model.embeddings.weight.size(0))
-    for node in tqdm(nodes.keys()) if prog else node_list:
-        neighbors = np.array([nodes[n] for n in graph.neighbors(node)])
+    for node in tqdm.tqdm(nodes.keys()):
+        neighbors = np.array([nodes[n] for n in (set(etym_wordnet.predecessors(node)) | set(etym_wordnet.successors(node)))])
         total_neighbors = neighbors.shape[0]
         
         #get all distances relative to target node (placeholder)
         #detach back to cpu and convert to numpy
-        all_dists = model.manifold.distance(model.embeddings.weight[node], model.embeddings.weight)
+        all_dists = model.manifold.distance(model.embeddings.weight[nodes[node]], model.embeddings.weight)
         all_dists = all_dists.detach().cpu().numpy()
 
         #set distance of target node to something large
@@ -34,7 +35,7 @@ def evaluate_reconstruction(nodes, etym_wordnet, model, prog=True):
         rank_off_tot += np.sum(rank_off+1-np.arange(total_neighbors))
 
         #reset to 0 and set only neighbors to 1, efficient way
-        labels = np.fill(0)
+        labels = np.zeros(len(all_dists))
         labels[neighbors] = 1
  
         avg_precise_tot += average_precision_score(labels, -all_dists)
@@ -56,9 +57,9 @@ if __name__ == '__main__':
     # load data in graph form
     nodes, edges, etym_wordnet = loaders.get_etym_wordnet_dataset(langs=['eng'], decycle=False)
 
-    if manifold == 'euclidean':
+    if args.manifold == 'euclidean':
         manifold = EuclideanManifold()
-    elif manifold == 'poincare':
+    elif args.manifold == 'poincare':
         manifold = PoincareManifold() 
     else:
         raise Exception("Unsupported manifold: %s" % manifold)
@@ -66,11 +67,11 @@ if __name__ == '__main__':
     for model_path in sorted(glob.glob(os.path.join(args.model_dir, 'model_checkpoint*.pt'))):
         print(model_path)
 
-        embeddings = Embeddings(nodes, manifold, int(args.dimdim))
+        embeddings = Embeddings(nodes, manifold, int(args.dim))
         embeddings.load_state_dict(torch.load(model_path))
 
         rank, MAP = evaluate_reconstruction(
-            etym_wordnet, embeddings, args.prog_bar)
+            nodes, etym_wordnet.etym_wordnet, embeddings, args.prog_bar)
         print("rank=%s, map=%s" % (rank, MAP))
 
 
