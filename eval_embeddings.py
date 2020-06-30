@@ -66,7 +66,7 @@ if __name__ == '__main__':
     parser.add_argument('--dim', dest='dim')
     parser.add_argument('--manifold', dest='manifold')
     parser.add_argument('--model_dir', dest='model_dir')
-    parser.add_argument('--bees', dest='bees', help='Num of parallel processes')
+    parser.add_argument('--bees', dest='bees', default=1, help='Num of parallel processes')
     parser.add_argument('--prog_one', action='store_true', dest='prog_one', default=False)
     args, unknown = parser.parse_known_args()
 
