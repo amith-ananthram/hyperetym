@@ -180,29 +180,29 @@ def get_etym_wordnet_dataset(langs=None, trim_ixes=True, decycle=True, transitiv
                 has_relations.add(node)
 
         etym_wordnet = nx.DiGraph(nx.subgraph(etym_wordnet, has_relations))
-	
-	
-	if decycle:
-		edges = list(etym_wordnet.edges())
-		ab = [a + ':'+ b +'|'+ c + ":" +d for (a,b),(c,d) in edges]
-		ba = [c + ':'+ d +'|'+ a + ":" +b for (a,b),(c,d) in edges]
-		val, ix = np.unique([ab, ba], return_index=True)
-		tf, = np.where(np.in1d(np.arange(2*len(edges)), ix, invert=True))
-		double_list = edges+edges
-		dup_edges = [double_list[i] for i in tf]
+    
+    
+    if decycle:
+        edges = list(etym_wordnet.edges())
+        ab = [a + ':'+ b +'|'+ c + ":" +d for (a,b),(c,d) in edges]
+        ba = [c + ':'+ d +'|'+ a + ":" +b for (a,b),(c,d) in edges]
+        val, ix = np.unique([ab, ba], return_index=True)
+        tf, = np.where(np.in1d(np.arange(2*len(edges)), ix, invert=True))
+        double_list = edges+edges
+        dup_edges = [double_list[i] for i in tf]
 
-		for edge in dup_edges:
-			etym_wordnet.remove_edge(*edge)
+        for edge in dup_edges:
+            etym_wordnet.remove_edge(*edge)
 
-		try:
-			while True:
-				cycle = nx.find_cycle(etym_wordnet)
-				eng_root = [((a,b),(c,d)) for (a,b),(c,d) in cycle if a == 'eng']
-				
-				edge_remove = eng_root[0] if len(eng_root) != 0 else cycle[0]
-				etym_wordnet.remove_edge(*edge_remove)
-		except:
-			pass
+        try:
+            while True:
+                cycle = nx.find_cycle(etym_wordnet)
+                eng_root = [((a,b),(c,d)) for (a,b),(c,d) in cycle if a == 'eng']
+                
+                edge_remove = eng_root[0] if len(eng_root) != 0 else cycle[0]
+                etym_wordnet.remove_edge(*edge_remove)
+        except:
+            pass
 
     if transitive_closure:
         etym_wordnet = nx.transitive_closure(etym_wordnet)

@@ -4,11 +4,13 @@ import glob
 import torch
 import networkx as nx
 import numpy as np
-import loaders
-import manifold
 
 from functools import partial
 from sklearn.metrics import average_precision_score
+
+import loaders
+from train_embeddings import Embeddings
+from manifold import EuclideanManifold, PoincareManifold
 
 def evaluate_reconstruction(nodes, etym_wordnet, model, prog=True):
     rank_off_tot = 0
@@ -45,14 +47,14 @@ def evaluate_reconstruction(nodes, etym_wordnet, model, prog=True):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Evaluate embeddings')
-    parser.add_arugment('--dim', dest='dim')
+    parser.add_argument('--dim', dest='dim')
     parser.add_argument('--manifold', dest='manifold')
     parser.add_argument('--model_dir', dest='model_dir')
     parser.add_argument('--prog_bar', action='store_true', dest='prog_bar', default=True)
     args, unknown = parser.parse_known_args()
 
     # load data in graph form
-    nodes, edges, etym_wordnet = loaders.get_etym_wordnet_dataset(langs=['eng'])
+    nodes, edges, etym_wordnet = loaders.get_etym_wordnet_dataset(langs=['eng'], decycle=False)
 
     if manifold == 'euclidean':
         manifold = EuclideanManifold()
