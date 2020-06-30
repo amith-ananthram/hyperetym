@@ -30,7 +30,8 @@ def evaluate_reconstruction(nodes, etym_wordnet, model, node_split):
         neighbors = np.array([nodes[n] for n in \
             (set(etym_wordnet.predecessors(node)) | \
                 set(etym_wordnet.successors(node)))])
-        neighbors_tot += neighbors.shape[0]
+        neighbors_len = neighbors.shape[0]
+        neighbors_tot += neighbors_len
         
         #get all distances relative to target node (placeholder)
         #detach back to cpu and convert to numpy
@@ -44,7 +45,7 @@ def evaluate_reconstruction(nodes, etym_wordnet, model, node_split):
         #finding how many nodes rank ahead of our neighbors
         sorted_ix = all_dists.argsort()
         rank_off, = np.where(np.in1d(sorted_ix, neighbors))
-        rank_off_tot += np.sum(rank_off) - (neighbors_tot * (neighbors_tot - 1) / 2)
+        rank_off_tot += np.sum(rank_off) - (neighbors_len * (neighbors_len - 1) / 2)
         # rank_off_tot += np.sum(rank_off-np.arange(neighbors_tot))
 
         #reset to 0 and set only neighbors to 1, efficient way
