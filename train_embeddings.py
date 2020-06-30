@@ -1,8 +1,10 @@
 import os
 import math
+import pickle
 import pathlib
 import argparse
 import numpy as np
+import networkx as nx
 from datetime import datetime
 
 import torch
@@ -39,7 +41,17 @@ def train(variant, manifold, dim, lr, batch_size, epochs):
     else:
         device = torch.device("cpu")
 
-    nodes, edges, etym_wordnet = loaders.get_etym_wordnet_dataset(langs=['eng'])
+    nodes, edges, etym_wordnet = loaders.get_etym_wordnet_dataset(
+        langs=['eng'], transitive_closure=False)
+
+    model_dir = os.path.join(EMBEDDINGS_DIR, variant)
+    pathlib.Path(model_dir).mkdir(parents=True, exist_ok=True)
+
+    with open(os.path.join(model_dir, 'nodes.pkl'), 'w') as f:
+        pickle.dump(nodes, f)
+    with open(os.path.join(model_dir, 'edges.pkl'), 'w') as f:
+        pickle.dump(edges, f)
+    nx.write_gpickle(etym_wordnet.etym_wordnet, os.path.join(model_dir, 'graph.pkl'))
 
     train_loader = data.DataLoader(
         etym_wordnet, 
@@ -98,8 +110,6 @@ def train(variant, manifold, dim, lr, batch_size, epochs):
                 print('%s: EPOCH %s BATCH %s/%s, LOSS=%s' % (
                     datetime.now(), epoch, batch_id, int(len(edges) / batch_size), loss.item()))
 
-        model_dir = os.path.join(EMBEDDINGS_DIR, variant)
-        pathlib.Path(model_dir).mkdir(parents=True, exist_ok=True)
         torch.save(
             embeddings.state_dict(),
             os.path.join(model_dir, "model_checkpoint%s.pt" % (epoch))
