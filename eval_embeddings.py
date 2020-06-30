@@ -120,7 +120,7 @@ if __name__ == '__main__':
                 output = np.array(output).sum(axis=0).astype(float)
         else:
             output = evaluate_reconstruction(
-                nodes, etym_wordnet.etym_wordnet, embeddings, node_ixs)
+                nodes, etym_wordnet.etym_wordnet, embeddings, (1,node_ixs))
 
         rank = output[0] / output[1]
         MAP = output[2] / output[3]
