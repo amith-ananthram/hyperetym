@@ -3,6 +3,7 @@ import argparse
 import tqdm
 import glob
 import torch
+import pickle
 import networkx as nx
 import numpy as np
 
@@ -87,8 +88,12 @@ if __name__ == '__main__':
     if not torch.cuda.is_available():
         map_loc = torch.device('cpu')
 
-    # load data in graph form
-    nodes, edges, etym_wordnet = loaders.get_etym_wordnet_dataset(langs=['eng'], decycle=False)
+    with open(os.path.join(args.model_dir, 'nodes.pkl'), 'rb') as f:
+        nodes = pickle.load(f)
+    with open(os.path.join(args.model_dir, 'edges.pkl'), 'rb') as f:
+        edges = pickle.load(f)
+    with open(os.paht.join(args.model_dir, 'graph.pkl'), 'rb') as f:
+        etym_wordnet = pickle.load(f)
 
     if args.manifold == 'euclidean':
         manifold = EuclideanManifold()
@@ -108,7 +113,7 @@ if __name__ == '__main__':
         if num_bees > 1:
             with ThreadPool(num_bees) as pool:
                 f = partial(evaluate_reconstruction, \
-                    nodes, etym_wordnet.etym_wordnet, embeddings)
+                    nodes, etym_wordnet, embeddings)
                 
                 node_split = np.array_split(list(node_ixs), num_bees)
                 if args.prog_one:
@@ -121,7 +126,7 @@ if __name__ == '__main__':
                 output = np.array(output).sum(axis=0).astype(float)
         else:
             output = evaluate_reconstruction(
-                nodes, etym_wordnet.etym_wordnet, embeddings, (1,node_ixs))
+                nodes, etym_wordnet, embeddings, (1,node_ixs))
 
         rank = output[0] / output[1]
         MAP = output[2] / output[3]
