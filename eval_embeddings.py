@@ -92,7 +92,7 @@ if __name__ == '__main__':
         nodes = pickle.load(f)
     with open(os.path.join(args.model_dir, 'edges.pkl'), 'rb') as f:
         edges = pickle.load(f)
-    with open(os.paht.join(args.model_dir, 'graph.pkl'), 'rb') as f:
+    with open(os.path.join(args.model_dir, 'graph.pkl'), 'rb') as f:
         etym_wordnet = pickle.load(f)
 
     if args.manifold == 'euclidean':

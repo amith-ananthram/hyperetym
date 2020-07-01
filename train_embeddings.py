@@ -145,6 +145,6 @@ if __name__ == '__main__':
         dim=int(args.dim),
         lr=float(args.lr),
         batch_size=int(args.batch_size),
-        epochs=int(args.epochs)
+        epochs=int(args.epochs),
         resume_from=int(args.resume_from) if args.resume_from else None
     )
