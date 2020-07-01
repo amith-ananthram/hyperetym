@@ -1,1 +1,1 @@
-from .etym_wordnet import get_etym_wordnet_dataset
+from .etym_wordnet import get_etym_wordnet_dataset, EtymWordnetDataset

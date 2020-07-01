@@ -14,6 +14,7 @@ from torch.nn import functional as F
 
 import loaders
 from rsgd import RSGD
+from loaders import EtymWordnetDataset
 from manifold import EuclideanManifold, PoincareManifold
 
 
@@ -34,30 +35,12 @@ BURN_IN_FACTOR = 1/10
 BURN_IN_EPOCHS = 5
 EMBEDDINGS_DIR = 'embeddings/'
 
-def train(variant, manifold, dim, lr, batch_size, epochs):
+def train(variant, manifold, dim, lr, batch_size, epochs, resume_from=None):
     if torch.cuda.is_available():
         print("Using GPU...")
         device = torch.device("cuda:0")
     else:
         device = torch.device("cpu")
-
-    nodes, edges, etym_wordnet = loaders.get_etym_wordnet_dataset(
-        langs=['eng'], transitive_closure=False)
-
-    model_dir = os.path.join(EMBEDDINGS_DIR, variant)
-    pathlib.Path(model_dir).mkdir(parents=True, exist_ok=True)
-
-    with open(os.path.join(model_dir, 'nodes.pkl'), 'w') as f:
-        pickle.dump(nodes, f)
-    with open(os.path.join(model_dir, 'edges.pkl'), 'w') as f:
-        pickle.dump(edges, f)
-    nx.write_gpickle(etym_wordnet.etym_wordnet, os.path.join(model_dir, 'graph.pkl'))
-
-    train_loader = data.DataLoader(
-        etym_wordnet, 
-        batch_size=batch_size,
-        shuffle=True
-    )
 
     if manifold == 'euclidean':
         manifold = EuclideanManifold()
@@ -66,14 +49,43 @@ def train(variant, manifold, dim, lr, batch_size, epochs):
     else:
         raise Exception("Unsupported manifold: %s" % manifold)
 
+    model_dir = os.path.join(EMBEDDINGS_DIR, variant)
     embeddings = Embeddings(nodes, manifold, dim).to(device)
+    if resume_from:
+        with open(os.path.join(model_dir, 'nodes.pkl'), 'rb') as f:
+            nodes = pickle.load(f)
+        with open(os.path.join(model_dir, 'edges.pkl'), 'rb') as f:
+            edges = pickle.load(f)
+        with open(os.path.join(model_dir, 'graph.pkl'), 'rb') as f:
+            etym_wordnet = pickle.load(f)
+        etym_wordnet = EtymWordnetDataset(nodes, edges, etym_wordnet)
+
+        embeddings.load_state_dict(torch.load(
+            os.path.join(model_dir, "model_checkpoint%s.pt" % (resume_from)), device))
+    else:
+        nodes, edges, etym_wordnet = loaders.get_etym_wordnet_dataset(
+            langs=['eng'], transitive_closure=False)
+
+        pathlib.Path(model_dir).mkdir(parents=True, exist_ok=True)
+        with open(os.path.join(model_dir, 'nodes.pkl'), 'wb') as f:
+            pickle.dump(nodes, f)
+        with open(os.path.join(model_dir, 'edges.pkl'), 'wb') as f:
+            pickle.dump(edges, f)
+        nx.write_gpickle(etym_wordnet.etym_wordnet, os.path.join(model_dir, 'graph.pkl'))
+
+    train_loader = data.DataLoader(
+        etym_wordnet, 
+        batch_size=batch_size,
+        shuffle=True
+    )
 
     optimizer = RSGD(list(embeddings.parameters()), manifold, lr)
 
     torch.set_default_tensor_type(torch.DoubleTensor)
 
     embeddings.train()
-    for epoch in range(epochs):
+    start_epoch = resume_from if resume_from else 0
+    for epoch in range(start_epoch, epochs):
         if epoch < BURN_IN_EPOCHS:
             adjusted_lr = BURN_IN_FACTOR * lr
         else:
@@ -124,6 +136,7 @@ if __name__ == '__main__':
     parser.add_argument('--lr', dest='lr')
     parser.add_argument('--batch_size', dest='batch_size')
     parser.add_argument('--epochs', dest='epochs')
+    parser.add_argument('--resume_from', dest='resume_from')
     args, unknown = parser.parse_known_args()
 
     train(
@@ -133,4 +146,5 @@ if __name__ == '__main__':
         lr=float(args.lr),
         batch_size=int(args.batch_size),
         epochs=int(args.epochs)
+        resume_from=int(args.resume_from) if args.resume_from else None
     )
