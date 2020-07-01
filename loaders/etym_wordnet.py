@@ -208,7 +208,8 @@ def get_etym_wordnet_dataset(langs=None, trim_ixes=True, decycle=True, transitiv
         etym_wordnet = nx.transitive_closure(etym_wordnet)
 
     if add_root:
-        etym_wordnet.add_edges_from([(('rot', 'root'), i) for i in etym_wordnet.nodes])
+        etym_wordnet.add_edges_from([(('rot', 'root'), i) for i in etym_wordnet.nodes \
+            if not len(list(etym_wordnet.predecessors(i)))])
 
     nodes = list(sorted(etym_wordnet.nodes()))
     nodes = bidict({node:idx for (idx, node) in enumerate(nodes)})
