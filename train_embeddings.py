@@ -50,7 +50,6 @@ def train(variant, manifold, dim, lr, batch_size, epochs, sub_tree_root=None, re
         raise Exception("Unsupported manifold: %s" % manifold)
 
     model_dir = os.path.join(EMBEDDINGS_DIR, variant)
-    embeddings = Embeddings(nodes, manifold, dim).to(device)
     if resume_from:
         with open(os.path.join(model_dir, 'nodes.pkl'), 'rb') as f:
             nodes = pickle.load(f)
@@ -60,6 +59,7 @@ def train(variant, manifold, dim, lr, batch_size, epochs, sub_tree_root=None, re
             etym_wordnet = pickle.load(f)
         etym_wordnet = EtymWordnetDataset(nodes, edges, etym_wordnet)
 
+        embeddings = Embeddings(nodes, manifold, dim).to(device)
         embeddings.load_state_dict(torch.load(
             os.path.join(model_dir, "model_checkpoint%s.pt" % (resume_from)), device))
     else:
@@ -81,6 +81,8 @@ def train(variant, manifold, dim, lr, batch_size, epochs, sub_tree_root=None, re
         with open(os.path.join(model_dir, 'edges.pkl'), 'wb') as f:
             pickle.dump(edges, f)
         nx.write_gpickle(etym_wordnet.etym_wordnet, os.path.join(model_dir, 'graph.pkl'))
+
+        embeddings = Embeddings(nodes, manifold, dim).to(device)
 
     train_loader = data.DataLoader(
         etym_wordnet, 
