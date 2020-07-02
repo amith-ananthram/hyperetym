@@ -214,7 +214,7 @@ def get_etym_wordnet_dataset(
 
     if sub_tree_root:
         etym_wordnet = nx.subgraph(
-            etym_wordnet, nx.descendants(etym_wordnet, sub_tree_root)
+            etym_wordnet, (set(nx.descendants(etym_wordnet, sub_tree_root)) | set([sub_tree_root])))
 
     nodes = list(sorted(etym_wordnet.nodes()))
     nodes = bidict({node:idx for (idx, node) in enumerate(nodes)})
