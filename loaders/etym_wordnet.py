@@ -126,7 +126,8 @@ class EtymWordnetDataset(data.Dataset):
 
         return torch.tensor(examples)
 
-def get_etym_wordnet_dataset(langs=None, trim_ixes=True, decycle=True, transitive_closure=True, add_root=True, nneg=10):
+def get_etym_wordnet_dataset(
+    langs=None, trim_ixes=True, decycle=True, transitive_closure=True, add_root=True, sub_tree_root=None, nneg=10):
     etym_wordnet = corpora.get_etym_wordnet(
         relations_to_include=[corpora.EtymWordnetRelation.ETYMOLOGICAL_ORIGIN_OF], 
         format='networkx'
@@ -210,6 +211,10 @@ def get_etym_wordnet_dataset(langs=None, trim_ixes=True, decycle=True, transitiv
     if add_root:
         etym_wordnet.add_edges_from([(('rot', 'root'), i) for i in etym_wordnet.nodes \
             if not len(list(etym_wordnet.predecessors(i)))])
+
+    if sub_tree_root:
+        etym_wordnet = nx.subgraph(
+            etym_wordnet, nx.descendants(etym_wordnet, sub_tree_root)
 
     nodes = list(sorted(etym_wordnet.nodes()))
     nodes = bidict({node:idx for (idx, node) in enumerate(nodes)})

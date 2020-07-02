@@ -4,38 +4,60 @@ import glob
 import math
 import torch
 import pickle
+import argparse
 import numpy as np
 import networkx as nx
 from colour import Color
 
 import drawSvg as draw
 from drawSvg import Drawing
-from hyperbolic import euclid, util
-from hyperbolic.poincare.shapes import *
-from hyperbolic.poincare import Transform
+from hyperbolic import euclid, poincare, util
 
 import loaders
 from train_embeddings import Embeddings 
-from manifold import PoincareManifold
+from manifold import EuclideanManifold, PoincareManifold
 
 from plot2 import plotPoincareDisc
 
-MODEL_PATH = 'poincare-2'
-START_NODE = ('rot', 'root')
-
 if __name__ == '__main__':
-    with open(os.path.join(MODEL_PATH, 'nodes.pkl'), 'rb') as f:
+    parser = argparse.ArgumentParser(description='Plot etymology embeddings')
+    parser.add_argument('--min_epoch', dest='min_epoch')
+    parser.add_argument('--max_epoch', dest='max_epoch')
+    parser.add_argument('--start_node', dest='start_node', default='rot-root')
+    parser.add_argument('--directory', dest='directory')
+    parser.add_argument('--manifold', dest='manifold')
+    parser.add_argument('--include_lines', action='store_true', dest='include_lines', default=False)
+    parser.add_argument('--include_text', action='store_true', dest='include_text', default=False)
+    args, unknown = parser.parse_known_args()
+
+    start_node = tuple(args.start_node.split('-'))
+
+    with open(os.path.join(args.directory, 'nodes.pkl'), 'rb') as f:
         nodes = pickle.load(f)
-    with open(os.path.join(MODEL_PATH, 'edges.pkl'), 'rb') as f:
+    with open(os.path.join(args.directory, 'edges.pkl'), 'rb') as f:
         edges = pickle.load(f)
-    with open(os.path.join(MODEL_PATH, 'graph.pkl'), 'rb') as f:
+    with open(os.path.join(args.directory, 'graph.pkl'), 'rb') as f:
         etym_wordnet = pickle.load(f)
 
-    to_plot = {item:nodes[item] for item in (nx.descendants(etym_wordnet, START_NODE) | set([('rot', 'root'), (START_NODE)]))}
+    if args.manifold == 'euclidean':
+        manifold = EuclideanManifold()
+        plotfold = euclid
+    else:
+        manifold = PoincareManifold()
+        plotfold = poincare
+
+    to_plot = {item:nodes[item] for item in (nx.descendants(etym_wordnet, start_node) | set([('rot', 'root'), (start_node)]))}
 
     torch.set_default_tensor_type(torch.DoubleTensor)
-    for model_path in sorted(glob.glob(os.path.join(MODEL_PATH, 'model_checkpoint*.pt'))):
+    for model_path in sorted(glob.glob(os.path.join(args.directory, 'model_checkpoint*.pt'))):
         epoch = int(re.search('model_checkpoint(\d*).pt', model_path).group(1))
+
+        if args.min_epoch and epoch < int(args.min_epoch):
+            continue
+
+        if args.max_epoch and epoch > int(args.max_epoch):
+            continue
+
         embeddings = Embeddings(nodes, PoincareManifold(), 2)
         embeddings.load_state_dict(torch.load(model_path, torch.device("cpu")))
         embeddings = embeddings.embeddings.weight.detach().numpy()
@@ -43,16 +65,16 @@ if __name__ == '__main__':
 
         d = Drawing(2.1, 2.1, origin='center')
         d.draw(euclid.shapes.Circle(0, 0, 1), fill='silver')
-        d.draw(Point(0, 0), radius=0.01, fill='black')
+        d.draw(plotfold.shapes.Point(0, 0), radius=0.01, fill='black')
 
         points = []
         max_level = 0
-        to_traverse = [(0, ('rot', 'root')), (1, START_NODE)] 
+        to_traverse = [(0, ('rot', 'root')), (1, start_node)] 
         while len(to_traverse) > 0:
             level, source = to_traverse.pop(0)
 
             max_level = max(max_level, level)
-            points.append((level, Point(*embeddings[source]), source))
+            points.append((level, plotfold.shapes.Point(*embeddings[source]), source))
 
             if level == 0 and source == ('rot', 'root'):
                 continue
@@ -60,12 +82,18 @@ if __name__ == '__main__':
             successors = etym_wordnet.successors(source)
             for successor in successors:
                 to_traverse.append((level + 1, successor))
-                # d.draw(Line.fromPoints(*embeddings[source], *embeddings[successor], segment=True), hwidth=radius/500)
+                if args.include_lines:
+                    d.draw(
+                        plotfold.shapes.Line.fromPoints(
+                            *embeddings[source], *embeddings[successor], segment=True
+                        ), stroke_width=0.005
+                    )
 
         colors = list(Color("red").range_to(Color("green"), max_level + 1))
         for level, point, text in points:
             d.draw(point, radius=0.01, fill=colors[level].hex)   
-            #d.draw(draw.Text('%s-%s' % text, 0.01, *point))      
+            if args.include_text:
+                d.draw(draw.Text('%s-%s' % text, 0.01, *point))      
 
         d.setRenderSize(w = 800)
         d.savePng('poincare-2-%s.png' % (str(epoch).zfill(2)))
