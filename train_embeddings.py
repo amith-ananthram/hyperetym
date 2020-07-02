@@ -35,7 +35,7 @@ BURN_IN_FACTOR = 1/10
 BURN_IN_EPOCHS = 5
 EMBEDDINGS_DIR = 'embeddings/'
 
-def train(variant, manifold, dim, lr, batch_size, epochs, sub_tree_root=None, resume_from=None):
+def train(variant, manifold, dim, lr, batch_size, epochs, transitive_closure=False, sub_tree_root=None, resume_from=None):
     if torch.cuda.is_available():
         print("Using GPU...")
         device = torch.device("cuda:0")
@@ -69,11 +69,12 @@ def train(variant, manifold, dim, lr, batch_size, epochs, sub_tree_root=None, re
                 sub_tree_root=sub_tree_root, 
                 trim_ixes=False,
                 add_root=False, 
-                transitive_closure=False
+                transitive_closure=transitive_closure
             )
         else:
             nodes, edges, etym_wordnet = loaders.get_etym_wordnet_dataset(
-                langs=['eng'], transitive_closure=False)
+                langs=['eng'], transitive_closure=transitive_closure
+            )
 
         pathlib.Path(model_dir).mkdir(parents=True, exist_ok=True)
         with open(os.path.join(model_dir, 'nodes.pkl'), 'wb') as f:
@@ -148,6 +149,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', dest='batch_size')
     parser.add_argument('--epochs', dest='epochs')
     parser.add_argument('--sub_tree_root', dest='sub_tree_root')
+    parser.add_argument('--transitive_closure', action='store_true', dest='transitive_closure', default=False)
     parser.add_argument('--resume_from', dest='resume_from')
     args, unknown = parser.parse_known_args()
 
@@ -159,5 +161,6 @@ if __name__ == '__main__':
         batch_size=int(args.batch_size),
         epochs=int(args.epochs),
         sub_tree_root=args.sub_tree_root,
+        transitive_closure=transitive_closure,
         resume_from=int(args.resume_from) if args.resume_from else None
     )
