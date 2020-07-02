@@ -3,11 +3,13 @@ import re
 import glob
 import math
 import torch
+import random
 import pickle
 import argparse
 import numpy as np
 import networkx as nx
 from colour import Color
+from collections import defaultdict
 
 import drawSvg as draw
 from drawSvg import Drawing
@@ -66,33 +68,39 @@ if __name__ == '__main__':
         d.draw(euclid.shapes.Circle(0, 0, 1), fill='silver')
         d.draw(plotfold.shapes.Point(0, 0), radius=0.01, fill='black')
 
-        points = []
         max_level = 0
+        points_by_level = defaultdict(list)
         to_traverse = [(0, ('rot', 'root')), (1, start_node)] if args.include_root else [(1, start_node)]
         while len(to_traverse) > 0:
             level, source = to_traverse.pop(0)
 
             max_level = max(max_level, level)
-            points.append((level, plotfold.shapes.Point(*embeddings[source]), source))
+            points_by_level[level].append(
+                (plotfold.shapes.Point(*embeddings[source]), source))
 
             if level == 0 and source == ('rot', 'root'):
                 continue
 
-            successors = etym_wordnet.successors(source)
-            for successor in successors:
+            for successor in sorted(etym_wordnet.successors(source)):
                 to_traverse.append((level + 1, successor))
                 if args.include_lines:
                     d.draw(
                         plotfold.shapes.Line.fromPoints(
                             *embeddings[source], *embeddings[successor], segment=True
-                        ), stroke_width=0.005
+                        ), stroke_width=0.001
                     )
 
+        random.seed("TEST")
         colors = list(Color("red").range_to(Color("green"), max_level + 1))
-        for level, point, text in points:
-            d.draw(point, radius=0.01, fill=colors[level].hex)   
-            if args.include_text:
-                d.draw(draw.Text('%s-%s' % text, 0.01, *point))      
+        for level in sorted(points_by_level.keys()):
+            with_text = random.sample(
+                points_by_level[level], 
+                min(len(points_by_level[level]), 2)
+            )
+            for point, text in points_by_level[level]:
+                d.draw(point, radius=0.01, fill=colors[level].hex)   
+                if args.include_text and (point, text) in with_text:
+                    d.draw(draw.Text('%s-%s' % text, 0.05, *point, fill='white'))      
 
         d.setRenderSize(w = 800)
         d.savePng('%s-%s.png' % (args.directory, str(epoch).zfill(3)))
