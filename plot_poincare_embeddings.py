@@ -26,6 +26,7 @@ if __name__ == '__main__':
     parser.add_argument('--start_node', dest='start_node', default='rot-root')
     parser.add_argument('--directory', dest='directory')
     parser.add_argument('--manifold', dest='manifold')
+    parser.add_argument('--no_root', action='store_false', dest='include_root', default=True)
     parser.add_argument('--include_lines', action='store_true', dest='include_lines', default=False)
     parser.add_argument('--include_text', action='store_true', dest='include_text', default=False)
     args, unknown = parser.parse_known_args()
@@ -46,8 +47,6 @@ if __name__ == '__main__':
         manifold = PoincareManifold()
         plotfold = poincare
 
-    to_plot = {item:nodes[item] for item in (nx.descendants(etym_wordnet, start_node) | set([('rot', 'root'), (start_node)]))}
-
     torch.set_default_tensor_type(torch.DoubleTensor)
     for model_path in sorted(glob.glob(os.path.join(args.directory, 'model_checkpoint*.pt'))):
         epoch = int(re.search('model_checkpoint(\d*).pt', model_path).group(1))
@@ -61,7 +60,7 @@ if __name__ == '__main__':
         embeddings = Embeddings(nodes, PoincareManifold(), 2)
         embeddings.load_state_dict(torch.load(model_path, torch.device("cpu")))
         embeddings = embeddings.embeddings.weight.detach().numpy()
-        embeddings = { item:embeddings[to_plot[item]] for item in to_plot }
+        embeddings = { node:embeddings[nodes[node]] for node in nodes.keys() }
 
         d = Drawing(2.1, 2.1, origin='center')
         d.draw(euclid.shapes.Circle(0, 0, 1), fill='silver')
@@ -69,7 +68,7 @@ if __name__ == '__main__':
 
         points = []
         max_level = 0
-        to_traverse = [(0, ('rot', 'root')), (1, start_node)] 
+        to_traverse = [(0, ('rot', 'root')), (1, start_node)] if args.include_root else [(1, start_node)]
         while len(to_traverse) > 0:
             level, source = to_traverse.pop(0)
 
@@ -96,4 +95,4 @@ if __name__ == '__main__':
                 d.draw(draw.Text('%s-%s' % text, 0.01, *point))      
 
         d.setRenderSize(w = 800)
-        d.savePng('poincare-2-%s.png' % (str(epoch).zfill(2)))
+        d.savePng('%s-%s.png' % (args.directory, str(epoch).zfill(3)))
