@@ -102,8 +102,8 @@ class EtymWordnetDataset(data.Dataset):
         self.node_weights = np.array([
             (
                 len(list(etym_wordnet.predecessors(node))) + 
-                len(list(etym_wordnet.successors(nodes)))
-            )/len(edges) for node in nodes])
+                len(list(etym_wordnet.successors(node)))
+            )/(2*len(edges)) for node in nodes.keys()])
         self.etym_wordnet = etym_wordnet
         self.nneg = nneg 
 
@@ -119,9 +119,9 @@ class EtymWordnetDataset(data.Dataset):
 
         neighbors = set(self.etym_wordnet.predecessors(source)) \
             | set(self.etym_wordnet.successors(source))
-        for nneg_candidate in np.random.choice(self.nodes.keys(), self.nneg * 20, replace=False, p=self.node_weights):
-            if nneg_candidate not in neighbors:
-                examples.append(self.nodes[nneg_candidate])
+        for nneg_candidate in np.random.choice(np.array([node for node in self.nodes.values()]), self.nneg * 20, p=self.node_weights):
+            if self.nodes.inv[nneg_candidate] not in neighbors:
+                examples.append(nneg_candidate)
                 if len(examples) >= 2 + self.nneg:
                     break
 

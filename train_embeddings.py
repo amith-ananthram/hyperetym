@@ -161,6 +161,6 @@ if __name__ == '__main__':
         batch_size=int(args.batch_size),
         epochs=int(args.epochs),
         sub_tree_root=args.sub_tree_root,
-        transitive_closure=transitive_closure,
+        transitive_closure=args.transitive_closure,
         resume_from=int(args.resume_from) if args.resume_from else None
     )
