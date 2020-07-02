@@ -102,8 +102,9 @@ class EtymWordnetDataset(data.Dataset):
         self.node_weights = np.array([
             (
                 len(list(etym_wordnet.predecessors(node))) + 
-                len(list(etym_wordnet.successors(nodes)))
-            )/len(edges) for node in nodes])
+                len(list(etym_wordnet.successors(node)))
+            )/len(edges) for node in nodes
+        ]).cumsum()
         self.etym_wordnet = etym_wordnet
         self.nneg = nneg 
 
@@ -117,13 +118,16 @@ class EtymWordnetDataset(data.Dataset):
             self.nodes[target]
         ]
 
+        attempts = 0
         neighbors = set(self.etym_wordnet.predecessors(source)) \
             | set(self.etym_wordnet.successors(source))
-        for nneg_candidate in np.random.choice(self.nodes.keys(), self.nneg * 20, replace=False, p=self.node_weights):
+        while attempts <= self.nneg * 20:
+            nneg_candidate = np.searchsorted(self.node_weights, random.random())
             if nneg_candidate not in neighbors:
                 examples.append(self.nodes[nneg_candidate])
                 if len(examples) >= 2 + self.nneg:
                     break
+            attempts += 1
 
         if len(examples) < 2 + self.nneg:
             print("Couldn't sample enough negatives for %s, zero-padding..." % (source))
